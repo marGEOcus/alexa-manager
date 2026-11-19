@@ -1,0 +1,22 @@
+name: "Alexa Manager"
+version: "1.1.19"
+slug: "alexa-manager"
+description: "Verwaltet Alexa-Geräte, -Szenen, -Gruppen und -Routinen direkt in Home Assistant (inoffizielle Amazon-Web-API)"
+arch:
+   - aarch64
+   - amd64
+init: false
+startup: application
+boot: auto
+ingress: true
+ingress_port: 8093
+panel_icon: mdi:face-agent
+panel_title: Alexa Manager
+panel_admin: true
+homeassistant_api: false
+hassio_api: false
+map:
+   - type: data
+     read_only: false
+options: {}
+schema: {}
