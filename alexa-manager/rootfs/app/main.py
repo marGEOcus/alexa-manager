@@ -41,7 +41,7 @@ logging.basicConfig(
 )
 log = logging.getLogger("alexa-manager")
 
-VERSION = "1.2.0"
+VERSION = "1.2.1"
 
 # alexapy-Details (Login-Flow, Seiten, Fehler) in Datei + In-Memory-Puffer
 from collections import deque

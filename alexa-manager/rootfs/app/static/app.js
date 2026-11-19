@@ -318,6 +318,7 @@ function reachLabel(d) {
 }
 
 let devSort = { key: "name", dir: 1 };
+let rtSort = { key: "name", dir: 1 };
 
 function devId(d) { return d.endpointId || d.applianceId || ""; }
 function isEcho(d) {
@@ -762,6 +763,23 @@ function decodeAction(node) {
   return { type: at.split(".").pop() || at, detail: "" };
 }
 
+function sortedRoutines(list) {
+  const cmp = (a, b) => {
+    let av, bv;
+    switch (rtSort.key) {
+      case "trigger":
+        av = decodeTrigger(a.triggers?.[0]).label;
+        bv = decodeTrigger(b.triggers?.[0]).label;
+        break;
+      default:
+        av = a.name || "";
+        bv = b.name || "";
+    }
+    return String(av).localeCompare(String(bv), "de") * rtSort.dir;
+  };
+  return [...list].sort(cmp);
+}
+
 function routineRowsHtml(list) {
   if (!list.length) {
     return `<tr><td colspan="4"><div class="empty"><div class="big">${ic("routines", 40)}</div>Keine Routinen vorhanden.</div></td></tr>`;
@@ -829,7 +847,7 @@ function applyRoutineFilter(c) {
     (r.name + " " + JSON.stringify(r.triggers || [])).toLowerCase().includes(q)) : S.routines;
   const tb = c.querySelector("table.list tbody");
   if (!tb) return;
-  tb.innerHTML = routineRowsHtml(list);
+  tb.innerHTML = routineRowsHtml(sortedRoutines(list));
   bindRoutineRows(c);
 }
 
@@ -858,6 +876,7 @@ function runRoutine(automationId) {
 
 async function renderRoutines(c) {
   if (!S.routines.length) S.routines = await api("api/routines");
+  const sortAr = (k) => rtSort.key === k ? (rtSort.dir === 1 ? " ↑" : " ↓") : "";
   c.innerHTML = `
     <div class="page-head"><div class="spacer"></div>
       <div class="actions"><button class="btn secondary small" id="rtRefresh">${ic("refresh", 16)}<span>Neu laden</span></button></div>
@@ -866,13 +885,13 @@ async function renderRoutines(c) {
     <div class="card table-card">
       <table class="list compact"><thead>
       <tr>
-        <th>Name</th>
-        <th>Trigger</th>
+        <th class="sortable" data-sort="name" title="Nach Name sortieren">Name<span class="sort-ar">${sortAr("name")}</span></th>
+        <th class="sortable" data-sort="trigger" title="Nach Trigger sortieren">Trigger<span class="sort-ar">${sortAr("trigger")}</span></th>
         <th>Aktionen</th>
         <th class="right">Steuerung</th>
       </tr>
       </thead><tbody>
-      ${routineRowsHtml(S.routines)}
+      ${routineRowsHtml(sortedRoutines(S.routines))}
       </tbody></table>
     </div>`;
   $("#rtRefresh").onclick = async () => { S.routines = await api("api/routines"); render(); };
@@ -887,6 +906,16 @@ async function renderRoutines(c) {
     $("#rtClear").hidden = true;
     applyRoutineFilter(c);
   };
+  c.querySelectorAll("thead th[data-sort]").forEach((th) => th.onclick = () => {
+    const k = th.dataset.sort;
+    if (rtSort.key === k) rtSort.dir *= -1;
+    else { rtSort.key = k; rtSort.dir = 1; }
+    c.querySelectorAll("thead th[data-sort]").forEach((x) => {
+      x.querySelector(".sort-ar").textContent =
+        x.dataset.sort === rtSort.key ? (rtSort.dir === 1 ? " ↑" : " ↓") : "";
+    });
+    applyRoutineFilter(c);
+  });
   bindRoutineRows(c);
 }
 

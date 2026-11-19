@@ -1,5 +1,5 @@
 name: "Alexa Manager"
-version: "1.2.0"
+version: "1.2.1"
 slug: "alexa-manager"
 description: "Verwaltet Alexa-Geräte, -Szenen, -Gruppen und -Routinen direkt in Home Assistant (inoffizielle Amazon-Web-API)"
 arch:

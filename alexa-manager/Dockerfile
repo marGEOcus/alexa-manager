@@ -16,7 +16,7 @@ RUN python3 -m virtualenv /opt/alexa-manager-venv \
     && mkdir -p /data
 
 ARG BUILD_ARCH=unknown
-ARG BUILD_VERSION=1.2.0
+ARG BUILD_VERSION=1.2.1
 LABEL io.hass.type="app" io.hass.arch="${BUILD_ARCH}" io.hass.version="${BUILD_VERSION}"
 
 CMD [ "/run.sh" ]

@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.2.1 (2026-11-19)
+- Routinen: Spalten „Name" und „Trigger" sind jetzt sortierbar (wie in der Geräte-Tabelle)
+
 ## 1.2.0 (2026-11-19)
 - Panels „Szenen" und „Gruppen" entfernt (Gruppen-Zugehörigkeit bleibt in den Gerätedetails/-Filtern sichtbar)
 - Routinen: neue Tabelle im Geräte-Layout (gleiche Zeilenhöhe) mit Spalten Name, Trigger, Aktionen (Anzahl) und Steuerung
