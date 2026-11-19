@@ -109,7 +109,6 @@ const S = {
   status: null,
   account: null,
   devices: [],
-  scenes: [],
   groups: [],
   routines: [],
   devChip: "all",          // Stat-Chip-Filter: all|online|offline|unknown|echo|groups|ha
@@ -123,8 +122,6 @@ const S = {
 const TABS = [
   ["overview", "Übersicht", "home"],
   ["devices", "Geräte", "devices"],
-  ["scenes", "Szenen", "scenes"],
-  ["groups", "Gruppen", "groups"],
   ["routines", "Routinen", "routines"],
   ["settings", "Einstellungen", "settings"],
 ];
@@ -266,8 +263,6 @@ async function render() {
     switch (S.tab) {
       case "overview": await renderOverview(c); break;
       case "devices": await renderDevices(c); break;
-      case "scenes": await renderScenes(c); break;
-      case "groups": await renderGroups(c); break;
       case "routines": await renderRoutines(c); break;
       case "settings": await renderSettings(c); break;
     }
@@ -282,12 +277,10 @@ async function render() {
 // Übersicht
 // ---------------------------------------------------------------------------
 async function renderOverview(c) {
-  const [devices, scenes, groups, routines, account] = await Promise.all([
-    api("api/devices"), api("api/scenes"), api("api/groups"),
-    api("api/routines"), api("api/account"),
+  const [devices, routines, account] = await Promise.all([
+    api("api/devices"), api("api/routines"), api("api/account"),
   ]);
-  S.devices = devices; S.scenes = scenes; S.groups = groups;
-  S.routines = routines; S.account = account;
+  S.devices = devices; S.routines = routines; S.account = account;
   const online = devices.filter((d) => reachLabel(d)[0] === "Erreichbar").length;
   const enabledRoutines = routines.filter((r) => r.status === "ENABLED").length;
   c.innerHTML = `
@@ -296,8 +289,6 @@ async function renderOverview(c) {
     </div>
     <div class="grid cols-4">
       <div class="stat"><div class="num">${devices.length}</div><div class="lbl">Geräte (${online} erreichbar)</div></div>
-      <div class="stat"><div class="num">${scenes.length}</div><div class="lbl">Szenen</div></div>
-      <div class="stat"><div class="num">${groups.length}</div><div class="lbl">Gruppen</div></div>
       <div class="stat"><div class="num">${routines.length}</div><div class="lbl">Routinen (${enabledRoutines} aktiv)</div></div>
     </div>
     <div class="card" style="margin-top:14px">
@@ -727,172 +718,6 @@ function openDevice(d) {
 }
 
 // ---------------------------------------------------------------------------
-// Szenen
-// ---------------------------------------------------------------------------
-async function renderScenes(c) {
-  if (!S.scenes.length) S.scenes = await api("api/scenes");
-  c.innerHTML = `
-    <div class="page-head"><div class="spacer"></div>
-      <div class="actions"><button class="btn secondary small" id="scnRefresh">${ic("refresh", 16)}<span>Neu laden</span></button></div>
-    </div>
-    <div class="hint" style="margin:-6px 0 12px">Szenen lassen sich in Routinen als Aktion verwenden. Szenen selbst werden von Amazon in der Alexa-App angelegt.</div>
-    <div class="grid cols-4">
-    ${S.scenes.map((s, i) => `
-      <div class="stat" data-i="${i}" style="cursor:pointer">
-        <div style="display:flex;align-items:center;gap:10px">
-          <span class="cell-icon">${ic("scenes", 20)}</span>
-          <span>
-            <div style="font-weight:600">${esc(s.name || "Ohne Name")}</div>
-            <div class="lbl">${esc(s.entityType || "Szene")}</div>
-          </span>
-        </div>
-      </div>`).join("") || `<div class="empty" style="grid-column:1/-1"><div class="big">${ic("scenes", 40)}</div>Keine Szenen gefunden.</div>`}
-    </div>`;
-  $("#scnRefresh").onclick = async () => { S.scenes = await api("api/scenes"); render(); };
-  c.querySelectorAll(".stat[data-i]").forEach((el) => el.onclick = () => {
-    const s = S.scenes[+el.dataset.i];
-    openDrawer(s.name || "Szene", `
-      <div class="kv">
-        <span class="k">Name</span><span class="v">${esc(s.name || "–")}</span>
-        <span class="k">Typ</span><span class="v">${esc(s.entityType || "–")}</span>
-        <span class="k">Erreichbar</span><span class="v">${esc(s.availability || "–")}</span>
-        <span class="k">ID</span><span class="v">${esc(s.id || "–")}</span>
-      </div>
-      <details class="raw" open><summary>Details (rohe Daten)</summary><pre class="rawjson">${esc(JSON.stringify(s.details, null, 2))}</pre></details>`);
-  });
-}
-
-// ---------------------------------------------------------------------------
-// Gruppen
-// ---------------------------------------------------------------------------
-async function renderGroups(c) {
-  if (!S.groups.length) {
-    await Promise.all([api("api/groups").then((g) => { S.groups = g; }),
-                       S.devices.length || api("api/devices").then((d) => { S.devices = d; })]);
-  }
-  const nameOf = (id) => S.devices.find((d) => d.applianceId === id)?.name || id;
-  c.innerHTML = `
-    <div class="page-head"><div class="spacer"></div>
-      <div class="actions">
-        <button class="btn secondary small" id="grpRefresh">${ic("refresh", 16)}<span>Neu laden</span></button>
-        <button class="btn small" id="grpNew">${ic("plus", 16)}<span>Gruppe erstellen</span></button>
-      </div>
-    </div>
-    <div class="card" style="padding:4px 8px">
-      <table class="list"><tbody>
-      ${S.groups.map((g, i) => `
-        <tr class="clickable" data-i="${i}">
-          <td><div class="main-cell">
-            <span class="cell-icon">${ic("groups", 20)}</span>
-            <span><div class="cell-title">${esc(g.name || "Ohne Name")}</div>
-            <div class="cell-sub">${g.applianceIds.length} Mitglied${g.applianceIds.length === 1 ? "" : "er"}${g.type ? " · " + esc(g.type) : ""}</div></span>
-          </div></td>
-          <td class="right">
-            <button class="icon-btn" data-act="edit" data-i="${i}" title="Bearbeiten">${ic("edit", 18)}</button>
-            <button class="icon-btn danger" data-act="del" data-i="${i}" title="Löschen">${ic("trash", 18)}</button>
-          </td>
-        </tr>`).join("") || `<tr><td colspan="2"><div class="empty"><div class="big">${ic("groups", 40)}</div>Keine Gruppen vorhanden.</div></td></tr>`}
-      </tbody></table>
-    </div>`;
-  $("#grpRefresh").onclick = async () => { S.groups = await api("api/groups"); render(); };
-  $("#grpNew").onclick = () => groupDialog(null);
-  c.querySelectorAll('[data-act=edit]').forEach((b) => b.onclick = (e) => {
-    e.stopPropagation(); groupDialog(S.groups[+b.dataset.i]);
-  });
-  c.querySelectorAll('[data-act=del]').forEach((b) => b.onclick = async (e) => {
-    e.stopPropagation();
-    const g = S.groups[+b.dataset.i];
-    if (!(await deleteConfirm("Gruppe löschen", g.name || "die Gruppe"))) return;
-    try {
-      await api(`api/groups/${encodeURIComponent(g.groupId)}`, "DELETE");
-      toast("Gruppe gelöscht.");
-      S.groups = await api("api/groups");
-      render();
-    } catch (ex) { toast(ex.message, "err"); }
-  });
-  c.querySelectorAll("tr[data-i]").forEach((tr) => tr.onclick = () => {
-    const g = S.groups[+tr.dataset.i];
-    openDrawer(g.name || "Gruppe", `
-      <div class="kv">
-        <span class="k">Name</span><span class="v">${esc(g.name || "–")}</span>
-        <span class="k">Typ</span><span class="v">${esc(g.type || "–")}</span>
-        <span class="k">Gruppe-ID</span><span class="v">${esc(g.groupId || "–")}</span>
-        <span class="k">Mitglieder</span><span class="v">${g.applianceIds.map((id) => esc(nameOf(id))).join(", ") || "keine"}</span>
-      </div>
-      <div class="actions">
-        <button class="btn small secondary" id="drEdit">${ic("edit", 15)}<span>Bearbeiten</span></button>
-        <button class="btn small danger secondary" id="drDel">${ic("trash", 15)}<span>Löschen</span></button>
-      </div>`);
-    $("#drEdit").onclick = () => groupDialog(g);
-    $("#drDel").onclick = async () => {
-      const ok = await deleteConfirm("Gruppe löschen", g.name || "die Gruppe");
-      if (!ok) return;
-      try {
-        await api(`api/groups/${encodeURIComponent(g.groupId)}`, "DELETE");
-        toast("Gruppe gelöscht.");
-        S.groups = await api("api/groups");
-        closeDrawer();
-        if (S.tab === "groups") render();
-      } catch (ex) { toast(ex.message, "err"); }
-    };
-  });
-}
-
-function groupDialog(existing) {
-  if (!S.devices.length) { toast("Geräteliste wird geladen …", "err"); return; }
-  const name = existing?.name || "";
-  // Vorwahl: gespeicherte applianceIds (neu: endpointIds) + Mitglieder nach
-  // aufgelöster Gruppen-Zugehoerigkeit (d.groups, auch alte SKILL_-IDs).
-  const selected = new Set(existing?.applianceIds || []);
-  if (existing?.name) {
-    for (const d of S.devices) {
-      if ((d.groups || []).includes(existing.name)) selected.add(d.applianceId || d.endpointId);
-    }
-  }
-  const root = openDialog(
-    existing ? "Gruppe bearbeiten" : "Gruppe erstellen",
-    `<label class="field"><span class="lbl">Gruppenname</span>
-     <input type="text" id="grpName" maxlength="80" value="${esc(name)}" placeholder="z. B. Wohnzimmer"></label>
-     <label class="field"><span class="lbl">Mitglieder</span>
-       <div class="search" style="margin-bottom:8px;max-width:none">${ic("search", 16)}<input id="grpSearch" placeholder="Gerät suchen …"></div>
-       <div class="dev-pick" id="grpPick">
-       ${S.devices.map((d) => `
-         <label class="checkbox-row" data-name="${esc((d.name || "").toLowerCase())}">
-           <input type="checkbox" value="${esc(d.applianceId || d.endpointId)}" ${selected.has(d.applianceId || d.endpointId) ? "checked" : ""}>
-           <span>${esc(d.name || "Ohne Name")} <span style="color:var(--text-2);font-size:12px">${esc(d.category || "")}</span></span>
-         </label>`).join("")}
-       </div></label>`,
-    `<button class="btn secondary" data-act="no">Abbrechen</button>
-     <button class="btn" data-act="yes">${ic("check", 16)}<span>Speichern</span></button>`
-  );
-  $("#grpSearch", root).oninput = (e) => {
-    const q = e.target.value.toLowerCase();
-    root.querySelectorAll("[data-name]").forEach((l) => {
-      l.style.display = l.dataset.name.includes(q) ? "" : "none";
-    });
-  };
-  root.querySelector('[data-act=no]').onclick = closeDialog;
-  root.querySelector('[data-act=yes]').onclick = async () => {
-    const groupName = $("#grpName", root).value.trim();
-    if (!groupName) return toast("Bitte Namen angeben.", "err");
-    const ids = [...root.querySelectorAll('input[type=checkbox]:checked')].map((i) => i.value).filter(Boolean);
-    try {
-      if (existing) {
-        await api(`api/groups/${encodeURIComponent(existing.groupId)}`, "PUT",
-          { name: groupName, applianceIds: ids });
-        toast("Gruppe aktualisiert.");
-      } else {
-        await api("api/groups", "POST", { name: groupName, applianceIds: ids });
-        toast("Gruppe erstellt.");
-      }
-      closeDialog();
-      S.groups = await api("api/groups");
-      if (S.tab === "groups") render();
-    } catch (ex) { toast(ex.message, "err"); }
-  };
-}
-
-// ---------------------------------------------------------------------------
 // Routinen
 // ---------------------------------------------------------------------------
 function flattenSequence(seq) {
@@ -939,22 +764,63 @@ function decodeAction(node) {
 
 function routineRowsHtml(list) {
   if (!list.length) {
-    return `<tr><td colspan="3"><div class="empty"><div class="big">${ic("routines", 40)}</div>Keine Routinen vorhanden.</div></td></tr>`;
+    return `<tr><td colspan="4"><div class="empty"><div class="big">${ic("routines", 40)}</div>Keine Routinen vorhanden.</div></td></tr>`;
   }
   return list.map((r) => {
     const t = decodeTrigger(r.triggers?.[0]);
     const acts = flattenSequence(r.sequence).length;
+    const on = r.status === "ENABLED";
     return `<tr class="clickable" data-id="${esc(r.automationId)}">
-      <td><div class="main-cell">
-        <span class="cell-icon">${ic("routines", 20)}</span>
-        <span><div class="cell-title">${esc(r.name || "Ohne Name")}</div>
-        <div class="cell-sub">Trigger: ${esc(t.label)} · ${acts} Aktion${acts === 1 ? "" : "en"}</div></span>
+      <td class="c-name">${esc(r.name || "Ohne Name")}</td>
+      <td class="c-desc"><span title="${esc(t.type)}">${esc(t.label)}</span></td>
+      <td><span class="badge">${acts}</span></td>
+      <td class="right"><div class="row-actions">
+        <button class="row-btn" data-act="run" title="Ausführen">${ic("play", 15)}</button>
+        <button class="row-btn" data-act="toggle" title="${on ? "Deaktivieren" : "Aktivieren"}">${ic("power", 15)}</button>
+        <button class="row-btn danger" data-act="del" title="Löschen">${ic("trash", 15)}</button>
       </div></td>
-      <td class="muted">${esc(t.type)}</td>
-      <td class="right"><span class="chip ${r.status === "ENABLED" ? "ok" : "err"}">
-        <span class="dot"></span>${r.status === "ENABLED" ? "Aktiv" : "Inaktiv"}</span></td>
     </tr>`;
   }).join("");
+}
+
+function bindRoutineRows(c) {
+  c.querySelectorAll("tr[data-id]").forEach((tr) => {
+    const id = tr.dataset.id;
+    tr.onclick = () => routineDrawer(id);
+    const run = tr.querySelector('[data-act="run"]');
+    if (run) run.onclick = (e) => { e.stopPropagation(); runRoutine(id); };
+    const tog = tr.querySelector('[data-act="toggle"]');
+    if (tog) tog.onclick = async (e) => {
+      e.stopPropagation();
+      const r = S.routines.find((x) => x.automationId === id);
+      if (!r) return;
+      const enabled = r.status !== "ENABLED";
+      const ok = await confirmDialog("Routine " + (enabled ? "aktivieren" : "deaktivieren") + "?",
+        `„${esc(r.name || "")}" wird ${enabled ? "aktiviert" : "deaktiviert"}.`);
+      if (!ok) return;
+      try {
+        await api(`api/routines/${encodeURIComponent(id)}`, "PUT", { status: enabled ? "ENABLED" : "DISABLED" });
+        toast(`Routine ${enabled ? "aktiviert" : "deaktiviert"}.`);
+        S.routines = await api("api/routines");
+        applyRoutineFilter(c);
+      } catch (ex) { toast(ex.message, "err"); }
+    };
+    const del = tr.querySelector('[data-act="del"]');
+    if (del) del.onclick = async (e) => {
+      e.stopPropagation();
+      const r = S.routines.find((x) => x.automationId === id);
+      if (!r) return;
+      const ok = await deleteConfirm("Routine löschen", r.name || "die Routine");
+      if (!ok) return;
+      try {
+        const res = await api(`api/routines/${encodeURIComponent(id)}`, "DELETE");
+        if (res.deleted) toast("Routine gelöscht.");
+        else toast("Amazon meldete Erfolg, aber die Routine ist noch in der Liste – bitte neu laden.", "err");
+        S.routines = await api("api/routines");
+        applyRoutineFilter(c);
+      } catch (ex) { toast(ex.message, "err"); }
+    };
+  });
 }
 
 function applyRoutineFilter(c) {
@@ -964,27 +830,52 @@ function applyRoutineFilter(c) {
   const tb = c.querySelector("table.list tbody");
   if (!tb) return;
   tb.innerHTML = routineRowsHtml(list);
-  c.querySelectorAll("tr[data-id]").forEach((tr) => tr.onclick = () =>
-    routineDrawer(tr.dataset.id));
+  bindRoutineRows(c);
+}
+
+function runRoutine(automationId) {
+  const echoP = S.account?.echoes
+    ? Promise.resolve(S.account.echoes)
+    : api("api/account").then((a) => { S.account = a; return a.echoes; });
+  echoP.then((echoes) => {
+    const root = openDialog("Routine ausführen",
+      `<label class="field"><span class="lbl">Ziel-Echo</span>
+       <select id="runEcho">${echoes.map((e) => `<option value="${esc(e.serialNumber)}">${esc(e.name)}</option>`).join("")}</select></label>
+       <div class="hint">Die Routinen-Sequenz wird als „Vorschau" auf dem gewählten Echo ausgeführt.</div>`,
+      `<button class="btn secondary" data-act="no">Abbrechen</button>
+       <button class="btn" data-act="yes">${ic("play", 16)}<span>Ausführen</span></button>`);
+    root.querySelector('[data-act=no]').onclick = closeDialog;
+    root.querySelector('[data-act=yes]').onclick = async () => {
+      try {
+        await api(`api/routines/${encodeURIComponent(automationId)}/run`, "POST",
+          { serialNumber: $("#runEcho", root).value });
+        toast("Routine ausgeführt.");
+        closeDialog();
+      } catch (ex) { toast(ex.message, "err"); }
+    };
+  }).catch((ex) => toast(ex.message, "err"));
 }
 
 async function renderRoutines(c) {
   if (!S.routines.length) S.routines = await api("api/routines");
   c.innerHTML = `
     <div class="page-head"><div class="spacer"></div>
-      <div class="actions">
-        <button class="btn secondary small" id="rtRefresh">${ic("refresh", 16)}<span>Neu laden</span></button>
-        <button class="btn small" id="rtNew">${ic("plus", 16)}<span>Routine anlegen</span></button>
-      </div>
+      <div class="actions"><button class="btn secondary small" id="rtRefresh">${ic("refresh", 16)}<span>Neu laden</span></button></div>
     </div>
     <div class="search">${ic("search", 18)}<input id="rtSearch" placeholder="Routine suchen …" value="${esc(S.search)}"><button class="search-clear" id="rtClear" title="Filter löschen" ${S.search ? "" : "hidden"}>${ic("close", 14)}</button></div>
-    <div class="card" style="padding:4px 8px">
-      <table class="list"><tbody>
+    <div class="card table-card">
+      <table class="list compact"><thead>
+      <tr>
+        <th>Name</th>
+        <th>Trigger</th>
+        <th>Aktionen</th>
+        <th class="right">Steuerung</th>
+      </tr>
+      </thead><tbody>
       ${routineRowsHtml(S.routines)}
       </tbody></table>
     </div>`;
   $("#rtRefresh").onclick = async () => { S.routines = await api("api/routines"); render(); };
-  $("#rtNew").onclick = () => routineDialog(null, null);
   $("#rtSearch").oninput = (e) => {
     S.search = e.target.value;
     $("#rtClear").hidden = !S.search;
@@ -996,8 +887,7 @@ async function renderRoutines(c) {
     $("#rtClear").hidden = true;
     applyRoutineFilter(c);
   };
-  c.querySelectorAll("tr[data-id]").forEach((tr) => tr.onclick = () =>
-    routineDrawer(tr.dataset.id));
+  bindRoutineRows(c);
 }
 
 async function routineDrawer(automationId) {
@@ -1027,29 +917,11 @@ async function routineDrawer(automationId) {
     <div class="actions">
       <button class="btn small" id="rtRun">${ic("play", 15)}<span>Ausführen</span></button>
       <button class="btn small ${r.status === "ENABLED" ? "secondary" : ""}" id="rtToggle">${ic("power", 15)}<span>${r.status === "ENABLED" ? "Deaktivieren" : "Aktivieren"}</span></button>
-      <button class="btn small secondary" id="rtEdit">${ic("edit", 15)}<span>Bearbeiten</span></button>
       <button class="btn small danger secondary" id="rtDel">${ic("trash", 15)}<span>Löschen</span></button>
     </div>
     <details class="raw"><summary>Details (rohe Routine)</summary><pre class="rawjson">${esc(JSON.stringify(r, null, 2))}</pre></details>
   `);
-  $("#rtRun").onclick = async () => {
-    const echoes = S.account?.echoes || (await api("api/account")).echoes;
-    const root = openDialog("Routine ausführen",
-      `<label class="field"><span class="lbl">Ziel-Echo</span>
-       <select id="runEcho">${echoes.map((e) => `<option value="${esc(e.serialNumber)}">${esc(e.name)}</option>`).join("")}</select></label>
-       <div class="hint">Die Routinen-Sequenz wird als „Vorschau" auf dem gewählten Echo ausgeführt.</div>`,
-      `<button class="btn secondary" data-act="no">Abbrechen</button>
-       <button class="btn" data-act="yes">${ic("play", 16)}<span>Ausführen</span></button>`);
-    root.querySelector('[data-act=no]').onclick = closeDialog;
-    root.querySelector('[data-act=yes]').onclick = async () => {
-      try {
-        await api(`api/routines/${encodeURIComponent(automationId)}/run`, "POST",
-          { serialNumber: $("#runEcho", root).value });
-        toast("Routine ausgeführt.");
-        closeDialog();
-      } catch (ex) { toast(ex.message, "err"); }
-    };
-  };
+  $("#rtRun").onclick = () => runRoutine(automationId);
   $("#rtToggle").onclick = async () => {
     const enabled = r.status !== "ENABLED";
     const ok = await confirmDialog("Routine " + (enabled ? "aktivieren" : "deaktivieren") + "?",
@@ -1062,7 +934,6 @@ async function routineDrawer(automationId) {
       routineDrawer(automationId);
     } catch (ex) { toast(ex.message, "err"); }
   };
-  $("#rtEdit").onclick = () => routineDialog(null, r);
   $("#rtDel").onclick = async () => {
     const ok = await deleteConfirm("Routine löschen", r.name || "die Routine");
     if (!ok) return;
@@ -1074,125 +945,6 @@ async function routineDrawer(automationId) {
       closeDrawer();
       if (S.tab === "routines") render();
     } catch (ex) { toast(ex.message, "err"); }
-  };
-}
-
-function routineDialog(_unused, existing) {
-  // existing: Routine-Objekt (Bearbeiten) oder null (Neu anlegen)
-  if (!S.account) {
-    api("api/account").then((a) => { S.account = a; routineDialog(null, existing); }).catch((ex) => toast(ex.message, "err"));
-    return;
-  }
-  const acc = S.account;
-  const firstTrig = existing?.triggers?.[0];
-  const isUtter = !existing || firstTrig?.type === "CustomUtterance";
-  const curUtter = isUtter ? parseMaybe(firstTrig?.payload)?.utterance || "" : "";
-  const nodes = existing ? flattenSequence(existing.sequence) : [];
-  const actionRows = nodes.length
-    ? nodes.map((n) => ({
-        type: n.type || "Alexa.TextCommand",
-        skillId: n.skillId || "",
-        json: JSON.stringify(n.operationPayload || {}, null, 2),
-      }))
-    : [{ type: "Alexa.TextCommand", skillId: "amzn1.ask.1p.tellalexa",
-        json: JSON.stringify({ deviceSerialNumber: acc.echoes[0]?.serialNumber || "", deviceType: acc.echoes[0]?.deviceType || "", locale: "de-DE", customerId: acc.customerId || "", text: "" }, null, 2) }];
-  const TYPES = [
-    ["Alexa.TextCommand", "Text-/Sprachbefehl (z. B. „Hallo“)",
-      JSON.stringify({ deviceSerialNumber: acc.echoes[0]?.serialNumber || "", deviceType: acc.echoes[0]?.deviceType || "", locale: "de-DE", customerId: acc.customerId || "", text: "" }, null, 2)],
-    ["Alexa.SmartHome.Batch", "Smart-Home-Gerät(e) schalten",
-      JSON.stringify({ entityIds: [""], deviceOperation: "turnOn" }, null, 2)],
-    ["AlexaAnnouncement", "Ankündigung (alle/wählen Geräte)",
-      JSON.stringify({ message: "", targetDevices: [acc.echoes[0]?.serialNumber || ""], chime: true, locale: "de-DE", customerId: acc.customerId || "" }, null, 2)],
-    ["Alexa.Sound", "Ton abspielen",
-      JSON.stringify({ sound: "chime", deviceSerialNumber: acc.echoes[0]?.serialNumber || "" }, null, 2)],
-    ["Alexa.System.Wait", "Wartezeit",
-      JSON.stringify({ millis: 1000 }, null, 2)],
-    ["(andere)", "Eigener Typ (JSON)", "{}"],
-  ];
-  const root = openDialog(
-    existing ? "Routine bearbeiten" : "Routine anlegen",
-    `
-    <label class="field"><span class="lbl">Name</span>
-      <input type="text" id="rtName" maxlength="120" value="${esc(existing?.name || "")}"></label>
-    ${existing && !isUtter ? `<div class="notice">Trigger-Typ ${esc(firstTrig?.type)} wird unverändert übernommen (nur Sprach-Trigger sind hier editierbar).</div>` : `
-    <label class="field"><span class="lbl">Auslöser (Sprachbefehl)</span>
-      <input type="text" id="rtUtter" placeholder="z. B. starte gute nacht" value="${esc(curUtter)}">
-      <div class="hint">Amazon-Trigger: „Alexa, starte/beginne &lt;Name&gt;“.</div></label>`}
-    <div class="lbl2" style="font-size:13px;color:var(--text-2);margin:4px 0 8px">Aktionen (Reihenfolge = Ausführung)</div>
-    <div id="actionList">
-    ${actionRows.map((a, i) => actionRowHTML(a, i)).join("")}
-    </div>
-    <button class="btn small secondary" id="actAdd" style="margin-top:4px">${ic("plus", 15)}<span>Aktion hinzufügen</span></button>
-    <div class="hint" style="margin-top:10px">operationPayload wird vor dem Speichern von Amazon validiert; bei Fehlern wird die Meldung angezeigt. Smart-Home entityIds: Endpoint-IDs aus der Geräteansicht.</div>`,
-    `<button class="btn secondary" data-act="no">Abbrechen</button>
-     <button class="btn" data-act="yes">${ic("check", 16)}<span>${existing ? "Speichern" : "Anlegen"}</span></button>`
-  );
-
-  function actionRowHTML(a, i) {
-    const opts = TYPES.map(([v]) => `<option value="${v}" ${v === a.type ? "selected" : ""}>${esc(v)}</option>`).join("");
-    return `<div class="action-row" data-i="${i}">
-      <div class="top">
-        <select class="actType">${opts}</select>
-        <button class="icon-btn danger rm" data-rm title="Aktion entfernen">${ic("close", 16)}</button>
-      </div>
-      <div class="lbl2">operationPayload (JSON)</div>
-      <textarea class="actJson" spellcheck="false">${esc(a.json)}</textarea>
-    </div>`;
-  }
-
-  root.querySelector('[data-act=no]').onclick = closeDialog;
-  root.querySelector("#actAdd").onclick = () => {
-    const list = $("#actionList", root);
-    const i = list.children.length;
-    list.insertAdjacentHTML("beforeend", actionRowHTML(
-      { type: "Alexa.TextCommand", json: JSON.stringify({ deviceSerialNumber: acc.echoes[0]?.serialNumber || "", deviceType: acc.echoes[0]?.deviceType || "", locale: "de-DE", customerId: acc.customerId || "", text: "" }, null, 2) }, i));
-  };
-  root.querySelector("#actionList").addEventListener("click", (e) => {
-    const rm = e.target.closest("[data-rm]");
-    if (rm) rm.closest(".action-row").remove();
-  });
-  root.querySelector("#actionList").addEventListener("change", (e) => {
-    if (!e.target.classList.contains("actType")) return;
-    const row = e.target.closest(".action-row");
-    const tpl = TYPES.find(([v]) => v === e.target.value)?.[2] || "{}";
-    row.querySelector(".actJson").value = tpl;
-  });
-  root.querySelector('[data-act=yes]').onclick = async () => {
-    const name = $("#rtName", root).value.trim();
-    if (!name) return toast("Bitte Namen angeben.", "err");
-    let trigger;
-    if (existing && !isUtter) {
-      trigger = firstTrig; // unverändert (Lese-Form)
-    } else if (isUtter) {
-      const utter = $("#rtUtter", root).value.trim();
-      if (!utter) return toast("Bitte Sprachbefehl angeben.", "err");
-      trigger = { type: "CustomUtterance", utterance: utter };
-    }
-    const actions = [...root.querySelectorAll(".action-row")].map((row) => {
-      const type = row.querySelector(".actType").value;
-      let op;
-      try { op = JSON.parse(row.querySelector(".actJson").value || "{}"); }
-      catch { throw new Error(`Ungültiges JSON in einer Aktion (Zeile ${row.dataset.i + 1}).`); }
-      return { type: type === "(andere)" ? op["@type"] || type : type, operationPayload: op };
-    });
-    if (!actions.length) return toast("Mindestens eine Aktion nötig.", "err");
-    try {
-      if (existing) {
-        await api(`api/routines/${encodeURIComponent(existing.automationId)}`, "PUT", {
-          name, trigger: trigger !== firstTrig ? trigger : null, actionOverrides: actions,
-        });
-        toast("Routine gespeichert.");
-      } else {
-        await api("api/routines", "POST", { name, trigger, actions });
-        toast("Routine angelegt.");
-      }
-      closeDialog();
-      S.routines = await api("api/routines");
-      if (S.tab === "routines") render();
-    } catch (ex) {
-      if (ex instanceof SyntaxError || ex.message?.includes("Ungültiges JSON")) return toast(ex.message, "err");
-      toast(ex.message, "err");
-    }
   };
 }
 

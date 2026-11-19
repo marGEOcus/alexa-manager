@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0 (2026-11-19)
+- Panels „Szenen" und „Gruppen" entfernt (Gruppen-Zugehörigkeit bleibt in den Gerätedetails/-Filtern sichtbar)
+- Routinen: neue Tabelle im Geräte-Layout (gleiche Zeilenhöhe) mit Spalten Name, Trigger, Aktionen (Anzahl) und Steuerung
+- Routinen-Zeile: Buttons zum Ausführen (Play), Aktivieren/Deaktivieren und Löschen (gleiche Größe wie in der Geräte-Tabelle)
+- Routinen „Bearbeiten" und „Neu anlegen" entfernt (Routinen bleiben der Alexa-App vorbehalten)
+- Sidebar-Icon: `mdi:emoticon-happy-outline`
+
 ## 1.1.19 (2026-11-19)
 - "Alle"-Checkbox von der Titelbar in den Tabellen-Header verlegt (links neben "Name", über allen Zeilen-Checkboxen)
 - Echo-Anzeige/-Filter jetzt anhand des Rohdateneintrags "value": "ALEXA_VOICE_ENABLED" (displayCategories.primary) – vorher 0 Treffer

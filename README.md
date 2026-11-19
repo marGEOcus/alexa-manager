@@ -15,12 +15,11 @@
 ## Funktionen
 
 - **Geräte**: Alle Alexa-Geräte mit Suche, Filtern (Gruppe, Typ, Status) und Details
-  (Erreichbarkeit, Hersteller, Modell, Endpoint-IDs) – direkt **aktivieren/deaktivieren**,
-  **umbenennen** oder **löschen**
-- **Szenen**: Szenen des Kontos ansehen (Szenen sind in Routinen als Aktion nutzbar)
-- **Gruppen**: Gruppen, -Zugehörigkeiten und Mitglieder ansehen
-- **Routinen**: Routinen (Trigger + Aktionen) ansehen, **ausführen**, **anlegen**
-  (Sprach- oder Zeitplan-Trigger), **aktivieren/deaktivieren** und **löschen**
+  (Erreichbarkeit, Hersteller, Modell, Gruppen-Zugehörigkeit, Endpoint-IDs) – direkt
+  **aktivieren/deaktivieren**, **umbenennen** oder **löschen**
+- **Routinen**: Routinen (Trigger + Aktionen) in einer Tabelle wie der Geräteansicht
+  ansehen – direkt aus der Zeile **ausführen**, **aktivieren/deaktivieren** und
+  **löschen**; Details inkl. roher Daten per Klick
 - **Einstellungen**: Amazon-Konto verbinden/abmelden, Theme (Hell/Dunkel/System)
 - **Keine Passwortspeicherung**: Einmaliger Amazon-Login pro Home Assistant – danach
   wird die Sitzung automatisch aus dem Refresh-Token erneuert (auch nach Neustarts)
@@ -82,6 +81,7 @@ Problemen, bevor du ein neues anlegst.
 
 - Datenverzeichnis: `/data` (App „data"); Sitzung: `/data/alexa_session.json` (0600)
 - Ingress-Panel, Basis-Image `ghcr.io/home-assistant/base:3.24`, Architekturen aarch64 + amd64
-- Beschränkungen: Kein Skill-Management, kein Szenen-Anlegen/Löschen (bleibt der Alexa-App
-  vorbehalten); gesperrte/regionale Amazon-Konten können beim Login ein Captcha verlangen
-  (Meldung im Panel)
+- Beschränkungen: Szenen werden nicht als Panel angezeigt und Routinen können hier nicht
+  angelegt/bearbeitet werden (beides bleibt der Alexa-App vorbehalten); keine
+  Skill-Verwaltung; gesperrte/regionale Amazon-Konten können beim Login ein Captcha
+  verlangen (Meldung im Panel)
