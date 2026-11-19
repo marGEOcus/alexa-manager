@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Alexa Manager</title>
+<script>
+// Vor dem Body-Render: HA-Theme aus dem Parent-iFrame (gleiche Origin)
+// auslesen, damit das Panel beim ersten Klick schon im korrekten
+// Design laedt (sonst flackert das helle Default-Theme kurz durch).
+(function () {
+  try {
+    if ((localStorage.getItem("am_theme") || "") === "dark")
+      document.documentElement.setAttribute("data-theme", "dark");
+    var p = window.parent;
+    if (!p || p === window || !p.document) return;
+    var el = p.document.body || p.document.documentElement;
+    var bg = getComputedStyle(el).getPropertyValue("--primary-background-color").trim();
+    if (!bg) return;
+    var m = bg.match(/rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)/), r, g, b;
+    if (m) { r = +m[1]; g = +m[2]; b = +m[3]; }
+    else {
+      var h = bg.replace(/^#/, "");
+      if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+      if (h.length < 6) return;
+      r = parseInt(h.slice(0, 2), 16); g = parseInt(h.slice(2, 4), 16); b = parseInt(h.slice(4, 6), 16);
+      if (isNaN(r) || isNaN(g) || isNaN(b)) return;
+    }
+    if ((0.299 * r + 0.587 * g + 0.114 * b) / 255 < 0.5)
+      document.documentElement.setAttribute("data-theme", "dark");
+  } catch (e) { /* Parent nicht lesbar - JS-Fallback greift */ }
+})();
+</script>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='11' fill='%2303a9f4'/%3E%3Cpath d='M5 14.5c1.8 2.6 4.2 3.9 7 3.9s5.2-1.3 7-3.9' stroke='%23fff' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css?v=1.1.19">
+</head>
+<body>
+<header id="topbar">
+  <div class="brand">
+    <span class="brand-icon" id="brandIcon"></span>
+    <span class="brand-title">Alexa Manager</span>
+  </div>
+  <nav id="tabs"></nav>
+  <div class="topbar-right">
+    <span id="sessionChip" class="chip hidden"></span>
+    <button class="icon-btn" id="themeBtn" title="Theme wechseln" aria-label="Theme wechseln"></button>
+  </div>
+</header>
+<main id="content"></main>
+<aside id="drawer" class="drawer hidden">
+  <div class="drawer-head">
+    <span id="drawerTitle"></span>
+    <button class="icon-btn" id="drawerClose" aria-label="Schließen"></button>
+  </div>
+  <div id="drawerBody" class="drawer-body"></div>
+</aside>
+<div id="dialogRoot" class="hidden"></div>
+<div id="toastRoot"></div>
+<script src="app.js?v=1.1.19"></script>
+</body>
+</html>
