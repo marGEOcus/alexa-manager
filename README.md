@@ -28,20 +28,25 @@
 ## Installation
 
 Der Add-on wird direkt aus diesem Repository installiert – der Link hinter dem
-Button unten ist die **direkte Download-URL des Add-on-ZIPs** für
-**„Von URL installieren"**:
+Button unten ist die **Download-URL des Add-on-ZIPs** für
+**„Von URL installieren"**. Die URL zeigt **immer auf die neueste Version** –
+aktuelle Releases findest du hier: [Releases](https://github.com/marGEOcus/alexa-manager/releases).
 
-[![Home Assistant Add-on installieren](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://github.com/marGEOcus/alexa-manager/releases/download/1.1.19/alexa-manager-1.1.19.zip)
+[![Home Assistant Add-on installieren](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://github.com/marGEOcus/alexa-manager/releases/latest/download/alexa-manager.zip)
 
 **So geht's:**
 
 1. In Home Assistant: **Einstellungen → Add-ons, Themes & Geräte → Add-on-Store**
 2. Oben rechts die **Erweiterte-Sicht** aktivieren
-3. **„Von URL installieren"** wählen und die URL aus dem Button oben (bzw. den
-   Download-Link der aktuellen [Release](https://github.com/marGEOcus/alexa-manager/releases)) eintragen
+3. **„Von URL installieren"** wählen und die URL aus dem Button oben eintragen
+   (`https://github.com/marGEOcus/alexa-manager/releases/latest/download/alexa-manager.zip`)
 4. **Alexa Manager** erscheint im Store → **Installieren** → **Starten**
 5. Das Panel „Alexa Manager" erscheint in der Seitenleiste → unter
    **Einstellungen** Amazon-E-Mail + Passwort eingeben (ggf. 2-Faktor-Code bestätigen)
+
+**Updates:** Neue Versionen erscheinen als neues [Release](https://github.com/marGEOcus/alexa-manager/releases)
+dieses Repositories. Da die Installations-URL immer auf das neueste Release zeigt,
+erkennt Home Assistant verfügbare Updates automatisch (Add-on-Store → „Update verfügbar").
 
 **Voraussetzungen:** Home Assistant OS (kein Container/VM), Architektur `aarch64` oder `amd64`.
 
