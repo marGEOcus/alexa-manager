@@ -1,0 +1,4 @@
+alexapy==1.36.0
+aiohttp>=3.9,<4.0
+fastapi>=0.115,<1.0
+uvicorn>=0.30,<1.0
