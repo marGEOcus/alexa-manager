@@ -317,6 +317,17 @@ function reachLabel(d) {
   return ["Unbekannt", ""];
 }
 
+// Amazon (Nexus/DACS) lehnt Namen mit Sonderzeichen ab: erlaubt sind nur
+// Buchstaben (auch Umlaute/Nicht-Lateinische), Zahlen, Leerzeichen und Apostrophe.
+// Gibt eine Fehlermeldung zurueck, null wenn der Name gueltig ist.
+function deviceNameError(name) {
+  if (!/[\p{L}\p{N}]/u.test(name))
+    return "Der Name muss mindestens einen Buchstaben oder eine Zahl enthalten.";
+  if (!/^[\p{L}\p{N} \u2019\u2018\u0027]+$/u.test(name))
+    return "Nur Buchstaben, Zahlen, Leerzeichen und Apostrophe erlaubt – keine @, Klammern, Bindestriche o. Ä.";
+  return null;
+}
+
 let devSort = { key: "name", dir: 1 };
 let rtSort = { key: "name", dir: 1 };
 
@@ -687,15 +698,19 @@ function openDevice(d) {
     const root = openDialog(
       "Gerät umbenennen",
       `<label class="field"><span class="lbl">Neuer Name</span>
-       <input type="text" id="rnName" maxlength="80" value="${esc(d.name || "")}"></label>`,
+       <input type="text" id="rnName" maxlength="80" value="${esc(d.name || "")}"></label>
+       <div class="hint">Erlaubt: Buchstaben, Zahlen, Leerzeichen und Apostrophe. Amazon lehnt Sonderzeichen (z. B. @, Klammern) ab.</div>`,
       `<button class="btn secondary" data-act="no">Abbrechen</button>
        <button class="btn" data-act="yes">${ic("check", 16)}<span>Speichern</span></button>`
     );
-    $("#rnName", root).focus();
+    const rnName = $("#rnName", root);
+    rnName.focus();
     root.querySelector('[data-act=no]').onclick = closeDialog;
     root.querySelector('[data-act=yes]').onclick = async () => {
-      const name = $("#rnName", root).value.trim();
+      const name = rnName.value.trim();
       if (!name) return;
+      const err = deviceNameError(name);
+      if (err) return toast(err, "err");
       try {
         await api("api/devices/rename", "POST", { endpointId: d.endpointId, name });
         toast("Umbenannt.");

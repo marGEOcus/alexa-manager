@@ -1,3 +1,6 @@
+## 1.2.2 (2026-11-22)
+- Umbenennen: Namen mit Sonderzeichen (z. B. @, Klammern) werden vorab erkannt und mit klarer Meldung abgelehnt – Amazon erlaubt nur Buchstaben, Zahlen, Leerzeichen und Apostrophe
+
 # Changelog
 
 ## 1.2.1 (2026-11-19)

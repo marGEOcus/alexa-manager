@@ -41,7 +41,7 @@ logging.basicConfig(
 )
 log = logging.getLogger("alexa-manager")
 
-VERSION = "1.2.1"
+VERSION = "1.2.2"
 
 # alexapy-Details (Login-Flow, Seiten, Fehler) in Datei + In-Memory-Puffer
 from collections import deque
@@ -355,10 +355,23 @@ async def api_device_enable(payload: dict):
         raise HTTPException(status_code=401 if isinstance(ex, SessionNotReady) else 502, detail=str(ex)) from ex
 
 
+def _check_device_name(name: str) -> None:
+    # Amazon (Nexus/DACS) akzeptiert nur Buchstaben, Zahlen, Leerzeichen und
+    # Apostrophe in Freundsnamen. Sonderzeichen (z. B. @, Klammern) wuerde der
+    # Server mit "Invalid input from DACS" ablehnen - hier frueh abfangen.
+    # isalpha()/isdigit() sind Unicode-komplett (Umlaute etc.); \w-Regexen
+    # wuerden zusätzlich Unterstriche durchlassen.
+    if not any(ch.isalpha() or ch.isdigit() for ch in name):
+        raise HTTPException(status_code=400, detail="Der Name muss mindestens einen Buchstaben oder eine Zahl enthalten.")
+    if any(not (ch.isalpha() or ch.isdigit() or ch in " '\u2019\u2018") for ch in name):
+        raise HTTPException(status_code=400, detail="Nur Buchstaben, Zahlen, Leerzeichen und Apostrophe erlaubt – keine @, Klammern, Bindestriche o. Ä.")
+
+
 @app.post("/api/devices/rename")
 async def api_device_rename(payload: dict):
     _guard()
     req = RenameReq(**payload)
+    _check_device_name(req.name.strip())
     endpoint_id = payload.get("endpointId")
     try:
         return await session.rename(endpoint_id, req.name)
